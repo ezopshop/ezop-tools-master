@@ -1044,14 +1044,15 @@ function renderSiparis(el, data, tool) {
       clearTimeout(tid); delete window[cb];
       const el2 = document.getElementById('_us_'+cb); if (el2) el2.remove();
       btnEl.disabled=false; btnEl.textContent='Kaydet';
-      if (res.ok) {
-        const found = data.find(r => gc(r,'id','ID') === String(rowId) || String(r._row) === String(rowId));
+      if (res.ok || res.updated) {
+        // Update badge directly - match by _row
+        const found = data.find(r => String(r._row) === String(rowId));
         if (found) {
           const sk = Object.keys(found).find(k => k.toLowerCase()==='status') || 'status';
           found[sk] = newStatus;
-          const bw = document.getElementById('sbw_'+rowId);
-          if (bw) bw.innerHTML = statusBadge(newStatus);
         }
+        const bw = document.getElementById('sbw_'+rowId);
+        if (bw) bw.innerHTML = statusBadge(newStatus);
         fbEl.textContent='✓ Kaydedildi'; fbEl.classList.add('show');
         setTimeout(()=>fbEl.classList.remove('show'), 2000);
       } else { alert('Hata: ' + (res.error||'?')); }
