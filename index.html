@@ -1057,7 +1057,7 @@ function renderSiparis(el, data, tool) {
         setTimeout(()=>fbEl.classList.remove('show'), 2000);
       } else { alert('Hata: ' + (res.error||'?')); }
     };
-    const p = new URLSearchParams({action:'update_row', sheet:sheetName, data:JSON.stringify({id:rowId, status:newStatus}), callback:cb});
+    const p = new URLSearchParams({action:'update_row', sheet:sheetName, data:JSON.stringify({_row:rowId, status:newStatus}), callback:cb});
     if (SS_ID) p.append('ssId', SS_ID);
     const s = document.createElement('script'); s.id='_us_'+cb; s.src=GS_URL+'?'+p;
     s.onerror=()=>{ clearTimeout(tid); delete window[cb]; btnEl.disabled=false; btnEl.textContent='Kaydet'; };
@@ -1081,7 +1081,7 @@ function renderSiparis(el, data, tool) {
     ].map(([v,l]) => `<option value="${v}"${statusFilter===v?' selected':''}>${l}</option>`).join('');
 
     const cards = rows.map(row => {
-      const rowId   = row._row ? String(row._row) : (gc(row,'id','ID') || String(Math.random()));
+      const rowId   = String(row._row);  // sheet row number, always use this
       const resimUrl= gc(row,'resimurl','Resim_URL','resim_url') || gc(row,'image');
       const thumb   = resimUrl
         ? `<div class="siparis-thumb"><img src="${resimUrl}" onerror="this.parentElement.textContent='📦'"></div>`
