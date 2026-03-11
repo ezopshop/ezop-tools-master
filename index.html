@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ezop Tools</title>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #0a0a0f;
@@ -506,15 +508,15 @@
   .siparis-main { min-width: 0; font-family: var(--display); }
 
   .siparis-title {
-    font-family: 'Syne', sans-serif !important;
+    font-family: 'Syne', Georgia, serif !important;
     font-size: 15px !important;
-    font-weight: 700;
-    line-height: 1.5;
-    color: #ffffff;
+    font-weight: 700 !important;
+    line-height: 1.5 !important;
+    color: #ffffff !important;
     word-break: break-word;
     margin-bottom: 4px;
-    letter-spacing: normal !important;
-    font-variant-ligatures: none;
+    letter-spacing: 0 !important;
+    font-feature-settings: normal !important;
   }
 
   .siparis-meta {
@@ -1078,7 +1080,7 @@ function renderSiparis(el, data, tool) {
     ].map(([v,l]) => `<option value="${v}"${statusFilter===v?' selected':''}>${l}</option>`).join('');
 
     const cards = rows.map(row => {
-      const rowId   = gc(row,'id','ID') || String(row._row);
+      const rowId   = row._row ? String(row._row) : (gc(row,'id','ID') || String(Math.random()));
       const resimUrl= gc(row,'resimurl','Resim_URL','resim_url') || gc(row,'image');
       const thumb   = resimUrl
         ? `<div class="siparis-thumb"><img src="${resimUrl}" onerror="this.parentElement.textContent='📦'"></div>`
