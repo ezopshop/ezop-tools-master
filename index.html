@@ -513,14 +513,26 @@ async function renderTool(toolId) {
 }
 
 // ─── FETCH ───────────────────────────────────────────────────
-async function fetchSheet(sheetName) {
-  if (!GS_URL) throw new Error('GS URL tanımlı değil. Admin panelden ayarla.');
-  const params = new URLSearchParams({ action: 'read', sheet: sheetName });
-  if (SS_ID) params.append('ssId', SS_ID);
-  const res = await fetch(`${GS_URL}?${params}`);
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || 'Veri alınamadı');
-  return json.data;
+function fetchSheet(sheetName) {
+  return new Promise((resolve, reject) => {
+    if (!GS_URL) { reject(new Error('GS URL tanimli degil. Admin panelden ayarla.')); return; }
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => { delete window[cbName]; reject(new Error('Timeout')); }, 10000);
+    window[cbName] = (json) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      document.getElementById('_jp_' + cbName) && document.getElementById('_jp_' + cbName).remove();
+      if (!json.ok) reject(new Error(json.error || 'Veri alinamadi'));
+      else resolve(json.data);
+    };
+    const params = new URLSearchParams({ action: 'read', sheet: sheetName, callback: cbName });
+    if (SS_ID) params.append('ssId', SS_ID);
+    const s = document.createElement('script');
+    s.id = '_jp_' + cbName;
+    s.src = GS_URL + '?' + params;
+    s.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('Script yuklenemedi')); };
+    document.head.appendChild(s);
+  });
 }
 
 // ─── TABLE RENDERER ──────────────────────────────────────────
