@@ -1024,7 +1024,7 @@ function renderSiparis(el, data, tool) {
               <div class="siparis-right">
                 ${fiyatNum > 0 ? `<div class="siparis-fiyat">${fiyatNum.toLocaleString('tr-TR', {minimumFractionDigits:2})} ₺</div>` : '<div class="siparis-fiyat">—</div>'}
                 ${miktar ? `<div class="siparis-miktar">x${miktar}</div>` : ''}
-                ${siparisNo ? `<div class="siparis-no">#${siparisNo}</div>` : ''}
+                ${refKod ? `<div class="siparis-no">#${refKod}</div>` : ''}
               </div>
               <div class="siparis-detail">
                 ${detailKeys.map(k => {
@@ -1072,3 +1072,4 @@ function renderError(el, msg) {
 </script>
 </body>
 </html>
+
