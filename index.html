@@ -503,16 +503,18 @@
   }
   .siparis-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
 
-  .siparis-main { min-width: 0; }
+  .siparis-main { min-width: 0; font-family: var(--display); }
 
   .siparis-title {
-    font-family: 'Syne', sans-serif;
-    font-size: 15px;
+    font-family: 'Syne', sans-serif !important;
+    font-size: 15px !important;
     font-weight: 700;
-    line-height: 1.45;
+    line-height: 1.5;
     color: #ffffff;
     word-break: break-word;
     margin-bottom: 4px;
+    letter-spacing: normal !important;
+    font-variant-ligatures: none;
   }
 
   .siparis-meta {
@@ -1093,7 +1095,8 @@ function renderSiparis(el, data, tool) {
       const status   = gc(row,'status');
       const fiyatNum = parseFloat(fiyat.replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
 
-      const detailHTML = Object.keys(row).filter(k => k !== '_row').map(k => {
+      const HIDDEN_COLS = ['mesaj','Mesaj','MESAJ'];
+      const detailHTML = Object.keys(row).filter(k => k !== '_row' && !HIDDEN_COLS.includes(k)).map(k => {
         const val = row[k]; if (!val && val !== 0) return '';
         let disp = String(val);
         if (disp.startsWith('http')) disp = `<a href="${disp}" target="_blank" onclick="event.stopPropagation()">🔗 Aç</a>`;
