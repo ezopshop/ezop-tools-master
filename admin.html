@@ -961,11 +961,10 @@ async function createTool() {
 
   try {
     // 1) Sheet oluştur
-    const sheetRes = await apiPost({
+    const sheetRes = await apiGet({
       action: 'create_sheet',
       sheet: id,
-      columns,
-      ssId: STATE.ssId || undefined
+      columns: columns.join(',')
     });
 
     if (!sheetRes.ok && sheetRes.result?.reason !== 'already_exists') {
@@ -974,29 +973,29 @@ async function createTool() {
 
     // 2) Registry'e ekle
     const now = new Date().toISOString().split('T')[0];
-    const regRes = await apiPost({
+    const rowObj = {
+      id, title, description: desc,
+      renderer: STATE.selectedRenderer,
+      sheet_name: id,
+      status: 'active',
+      created_at: now,
+      url: (STATE.baseUrl || '') + 'index.html?tool=' + id
+    };
+    const regRes = await apiGet({
       action: 'append_row',
       sheet: '_registry',
-      ssId: STATE.ssId || undefined,
-      row: {
-        id, title, description: desc,
-        renderer: STATE.selectedRenderer,
-        sheet_name: id,
-        status: 'active',
-        created_at: now,
-        url: `${STATE.baseUrl}index.html?tool=${id}`
-      }
+      row: JSON.stringify(rowObj)
     });
 
     if (!regRes.ok) throw new Error(regRes.error || 'Registry yazılamadı');
 
-    log('ok', `"${title}" oluşturuldu — sheet: ${id}, renderer: ${STATE.selectedRenderer}`);
-    toast(`✅ "${title}" hazır!`);
+    log('ok', '"' + title + '" oluşturuldu — sheet: ' + id + ', renderer: ' + STATE.selectedRenderer);
+    toast('✅ "' + title + '" hazır!');
     closeModal();
     await loadTools();
 
   } catch (err) {
-    log('err', `Hata: ${err.message}`);
+    log('err', 'Hata: ' + err.message);
     toast(err.message, true);
   } finally {
     showSpinner('createSpinner', false);
@@ -1007,11 +1006,9 @@ async function deleteTool(id, sheetName) {
   if (!confirm(`"${id}" silinecek. Emin misin?`)) return;
 
   try {
-    // Sheet sil
-    await apiPost({ action: 'delete_sheet', sheet: sheetName, ssId: STATE.ssId || undefined });
-    // Registry'den sil
-    await apiPost({ action: 'delete_row', sheet: '_registry', ssId: STATE.ssId || undefined, data: { id } });
-    log('ok', `"${id}" silindi`);
+    await apiGet({ action: 'delete_sheet', sheet: sheetName });
+    await apiGet({ action: 'delete_row', sheet: '_registry', id: id });
+    log('ok', '"' + id + '" silindi');
     toast('Silindi');
     await loadTools();
   } catch (err) {
@@ -1020,14 +1017,30 @@ async function deleteTool(id, sheetName) {
   }
 }
 
-// ─── API ─────────────────────────────────────────────────────
-async function apiPost(body) {
-  const res = await fetch(STATE.gsUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+// ─── API — tüm işlemler JSONP/GET ile ───────────────────────
+function apiGet(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      reject(new Error('Timeout'));
+    }, 15000);
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const el = document.getElementById('_ap_' + cbName);
+      if (el) el.remove();
+      resolve(data);
+    };
+    params.callback = cbName;
+    if (STATE.ssId) params.ssId = STATE.ssId;
+    const qs = Object.keys(params).map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k])).join('&');
+    const s = document.createElement('script');
+    s.id = '_ap_' + cbName;
+    s.src = STATE.gsUrl + '?' + qs;
+    s.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('İstek başarısız')); };
+    document.head.appendChild(s);
   });
-  return res.json();
 }
 
 // ─── HELPERS ─────────────────────────────────────────────────
