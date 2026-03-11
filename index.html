@@ -672,6 +672,7 @@
   .save-feedback.show { opacity: 1; }
 
   .lbl-sub { font-size: 9px; color: var(--accent); display: block; }
+  .summary-sub { font-size: 10px; color: #f87171; margin-top: 4px; }
 
   /* ── PAGINATION ── */
   .pagination {
@@ -1057,9 +1058,34 @@ function renderSiparis(el, data, tool) {
   const gonderenler = [...new Set(data.map(r => gc(r,'gönderen','gonderen')).filter(Boolean))];
 
   function calcSummary(rows) {
-    const totalFiyat = rows.reduce((s,r) => s + (parseFloat(gc(r,'fiyat').replace(/[^0-9.,]/g,'').replace(',','.')) || 0), 0);
-    const totalMiktar = rows.reduce((s,r) => s + (parseFloat(gc(r,'miktar')) || 0), 0);
-    return { total: rows.length, totalFiyat, totalMiktar };
+    let siparisSayisi = 0, iadeSayisi = 0;
+    let siparisFiyat = 0, iadeFiyat = 0;
+    let siparisMiktar = 0, iadeMiktar = 0;
+    rows.forEach(r => {
+      const miktar = parseFloat(gc(r,'miktar')) || 0;
+      const fiyat  = parseFloat(gc(r,'fiyat').replace(/[^0-9.,-]/g,'').replace(',','.')) || 0;
+      const absFiyat = Math.abs(fiyat);
+      if (miktar < 0 || fiyat < 0) {
+        iadeSayisi++;
+        iadeFiyat   += absFiyat;
+        iadeMiktar  += Math.abs(miktar);
+      } else {
+        siparisSayisi++;
+        siparisFiyat  += fiyat;
+        siparisMiktar += miktar;
+      }
+    });
+    return {
+      total: rows.length,
+      siparisSayisi, iadeSayisi,
+      siparisMiktar, iadeMiktar,
+      netMiktar: siparisMiktar - iadeMiktar,
+      siparisFiyat, iadeFiyat,
+      netFiyat: siparisFiyat - iadeFiyat,
+      // legacy
+      totalFiyat: siparisFiyat - iadeFiyat,
+      totalMiktar: siparisMiktar - iadeMiktar,
+    };
   }
 
   const PAGE_SIZE = 20;
@@ -1129,7 +1155,7 @@ function renderSiparis(el, data, tool) {
     const allRows = getFiltered();
     const rows = getPaged(allRows);
     const totalPages = Math.ceil(allRows.length / PAGE_SIZE);
-    const { total, totalFiyat, totalMiktar } = calcSummary(allRows);  // always full
+    const { total, siparisSayisi, iadeSayisi, siparisMiktar, iadeMiktar, netMiktar, siparisFiyat, iadeFiyat, netFiyat } = calcSummary(allRows);
     const sheetName = tool.sheet_name || tool.id;
 
     const filterBtns = gonderenler.map(g => {
@@ -1223,12 +1249,32 @@ function renderSiparis(el, data, tool) {
           <option value="90"${dateFilter==='90'?' selected':''}>Son 90 Gün</option>
         </select>
       </div>
-      <div class="siparis-summary">
-        <div class="summary-card"><div class="summary-val">${total}</div><div class="summary-lbl">Sipariş${dateFilter!=='all'?'<span class="lbl-sub"> (filtreli)</span>':''}</div></div>
-        <div class="summary-card"><div class="summary-val">${totalMiktar||'—'}</div><div class="summary-lbl">Toplam Miktar</div></div>
-        <div class="summary-card"><div class="summary-val">${totalFiyat>0?totalFiyat.toLocaleString('tr-TR',{minimumFractionDigits:2}):'—'}</div><div class="summary-lbl">Toplam Değer</div></div>
-        <div class="summary-card"><div class="summary-val">${calcSummary(data).totalFiyat.toLocaleString('tr-TR',{minimumFractionDigits:2})}</div><div class="summary-lbl">Genel Toplam</div></div>
-      </div>
+      ${(() => {
+        const gs = calcSummary(data); // unfiltered global summary
+        const fmt = n => n.toLocaleString('tr-TR',{minimumFractionDigits:2});
+        return `<div class="siparis-summary">
+          <div class="summary-card">
+            <div class="summary-val">${siparisSayisi}</div>
+            <div class="summary-lbl">Sipariş</div>
+            ${iadeSayisi>0?`<div class="summary-sub">↩ ${iadeSayisi} iade</div>`:''}
+          </div>
+          <div class="summary-card">
+            <div class="summary-val">${netMiktar}</div>
+            <div class="summary-lbl">Net Miktar</div>
+            ${iadeMiktar>0?`<div class="summary-sub">↩ -${iadeMiktar} iade</div>`:''}
+          </div>
+          <div class="summary-card">
+            <div class="summary-val">${netFiyat>0?fmt(netFiyat):'—'}</div>
+            <div class="summary-lbl">Net Değer${dateFilter!=='all'?'<span class="lbl-sub"> filtreli</span>':''}</div>
+            ${iadeFiyat>0?`<div class="summary-sub">↩ -${fmt(iadeFiyat)}</div>`:''}
+          </div>
+          <div class="summary-card">
+            <div class="summary-val">${fmt(gs.netFiyat)}</div>
+            <div class="summary-lbl">Genel Toplam</div>
+            ${gs.iadeSayisi>0?`<div class="summary-sub">↩ ${gs.iadeSayisi} iade düşüldü</div>`:''}
+          </div>
+        </div>`;
+      })()}
       <div class="siparis-list">${cards}</div>
       ${totalPages > 1 ? `
       <div class="pagination">
