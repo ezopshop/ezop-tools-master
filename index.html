@@ -998,8 +998,14 @@ function renderSiparis(el, data, tool) {
     { val: 'tamamlandi',   label: '🟢 Tamamlandı',   cls: 'status-tamamlandi' },
   ];
 
+  // Türkçe veya normalize değeri kabul et
+  function normalizeStatus(val) {
+    const map = {'yeni':'yeni','hazırlanıyor':'hazirlaniyor','hazirlaniyor':'hazirlaniyor','yolda':'yolda','tamamlandı':'tamamlandi','tamamlandi':'tamamlandi'};
+    return map[(val||'').toLowerCase().trim()] || '';
+  }
+
   function statusBadge(val) {
-    const s = STATUS_LIST.find(o => o.val === (val||'').toLowerCase()) || STATUS_LIST[0];
+    const s = STATUS_LIST.find(o => o.val === normalizeStatus(val)) || STATUS_LIST[0];
     return `<span class="status-badge ${s.cls}">${s.label}</span>`;
   }
 
@@ -1028,7 +1034,7 @@ function renderSiparis(el, data, tool) {
   function getFiltered() {
     return data.filter(r => {
       const gMatch = activeFilter === 'all' || gc(r,'gönderen','gonderen') === activeFilter;
-      const sMatch = statusFilter === 'all' || gc(r,'status').toLowerCase() === statusFilter;
+      const sMatch = statusFilter === 'all' || normalizeStatus(gc(r,'status')) === statusFilter;
       const q      = searchVal.toLowerCase();
       const qMatch = !q || Object.values(r).some(v => String(v).toLowerCase().includes(q));
       return gMatch && sMatch && qMatch;
