@@ -593,6 +593,80 @@
     letter-spacing: 1px;
   }
 
+
+  /* ── STATUS BADGE ── */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    border: 1px solid transparent;
+  }
+  .status-yeni        { background: rgba(107,107,128,.15); color: #9ca3af; border-color: rgba(107,107,128,.3); }
+  .status-hazirlaniyor { background: rgba(245,158,11,.12); color: #fbbf24; border-color: rgba(245,158,11,.3); }
+  .status-yolda       { background: rgba(124,58,237,.15); color: #a78bfa; border-color: rgba(124,58,237,.3); }
+  .status-tamamlandi  { background: rgba(0,255,136,.1);  color: #00ff88; border-color: rgba(0,255,136,.25); }
+
+  .status-editor {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: rgba(0,0,0,.3);
+    border-radius: 8px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+  }
+
+  .status-editor label {
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .status-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 12px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    flex: 1;
+  }
+  .status-select:focus { outline: none; border-color: var(--accent); }
+
+  .btn-save-status {
+    padding: 8px 16px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-save-status:hover { background: #00e07a; transform: translateY(-1px); }
+  .btn-save-status:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+  .save-feedback {
+    font-size: 11px;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .save-feedback.show { opacity: 1; }
+
 </style>
 </head>
 <body>
@@ -1024,7 +1098,7 @@ function renderSiparis(el, data, tool) {
               <div class="siparis-right">
                 ${fiyatNum > 0 ? `<div class="siparis-fiyat">${fiyatNum.toLocaleString('tr-TR', {minimumFractionDigits:2})} ₺</div>` : '<div class="siparis-fiyat">—</div>'}
                 ${miktar ? `<div class="siparis-miktar">x${miktar}</div>` : ''}
-                ${refKod ? `<div class="siparis-no">#${refKod}</div>` : ''}
+                ${siparisNo ? `<div class="siparis-no">#${siparisNo}</div>` : ''}
               </div>
               <div class="siparis-detail">
                 ${detailKeys.map(k => {
@@ -1072,4 +1146,3 @@ function renderError(el, msg) {
 </script>
 </body>
 </html>
-
