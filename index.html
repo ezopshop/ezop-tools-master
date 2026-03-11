@@ -1533,14 +1533,14 @@ function renderSiparis(el, data, tool) {
             ${iadeMiktar>0?`<div class="summary-sub">↩ -${iadeMiktar} iade</div>`:''}
           </div>
           <div class="summary-card">
-            <div class="summary-val">${netFiyat>0?fmt(netFiyat):'—'}</div>
+            <div class="summary-val">${siparisFiyat>0?fmt(siparisFiyat):'—'}</div>
             <div class="summary-lbl">Net Değer${dateFilter!=='all'?'<span class="lbl-sub"> filtreli</span>':''}</div>
-            ${iadeFiyat>0?`<div class="summary-sub">↩ -${fmt(iadeFiyat)}</div>`:''}
+            ${iadeFiyat>0?`<div class="summary-sub">↩ ${iadeSayisi} iade: -${fmt(iadeFiyat)}</div>`:''}
           </div>
           <div class="summary-card">
-            <div class="summary-val">${fmt(gs.netFiyat)}</div>
+            <div class="summary-val">${fmt(gs.siparisFiyat)}</div>
             <div class="summary-lbl">Genel Toplam</div>
-            ${gs.iadeSayisi>0?`<div class="summary-sub">↩ ${gs.iadeSayisi} iade düşüldü</div>`:''}
+            ${gs.iadeSayisi>0?`<div class="summary-sub">↩ ${gs.iadeSayisi} iade: -${fmt(gs.iadeFiyat)}</div>`:''}
           </div>
         </div>`;
       })()}
