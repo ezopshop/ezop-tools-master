@@ -992,142 +992,199 @@ function renderChecklist(el, data) {
 function renderSiparis(el, data, tool) {
   if (!data.length) { el.innerHTML = emptyHTML(); return; }
 
-  // Kolon anahtarlarını normalize et (büyük/küçük harf toleransı)
-  function col(row, ...names) {
-    for (const n of names) {
-      const key = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === n.toLowerCase().replace(/[^a-z0-9]/g,''));
-      if (key && row[key] !== undefined && row[key] !== '') return row[key];
-    }
-    return '';
+  const STATUS_OPTIONS = [
+    { val: '',             label: '— Belirsiz',     cls: 'status-yeni' },
+    { val: 'yeni',         label: '🔵 Yeni',         cls: 'status-yeni' },
+    { val: 'hazirlaniyor', label: '🟡 Hazırlanıyor', cls: 'status-hazirlaniyor' },
+    { val: 'yolda',        label: '🟣 Yolda',        cls: 'status-yolda' },
+    { val: 'tamamlandi',   label: '🟢 Tamamlandı',   cls: 'status-tamamlandi' },
+  ];
+
+  function statusBadge(val) {
+    const s = STATUS_OPTIONS.find(o => o.val === (val||'').toLowerCase()) || STATUS_OPTIONS[0];
+    return '<span class="status-badge ' + s.cls + '">' + s.label + '</span>';
+  }
+
+  function col(row) {
+    // returns a lookup function
+    return function(...names) {
+      for (const n of names) {
+        const key = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === n.toLowerCase().replace(/[^a-z0-9]/g,''));
+        if (key && row[key] !== undefined && row[key] !== '') return row[key];
+      }
+      return '';
+    };
   }
 
   let activeFilter = 'all';
+  let statusFilter = 'all';
   let searchVal = '';
 
-  // Benzersiz göndericiler
-  const gonderenler = [...new Set(data.map(r => col(r,'gönderen','gonderen')).filter(Boolean))];
+  const gonderenler = [...new Set(data.map(r => col(r)('gönderen','gonderen')).filter(Boolean))];
 
-  // Özet hesapla
   function calcSummary(rows) {
     const total = rows.length;
-    const totalFiyat = rows.reduce((s, r) => {
-      const f = parseFloat(String(col(r,'fiyat')).replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
-      return s + f;
-    }, 0);
-    const totalMiktar = rows.reduce((s, r) => {
-      const m = parseFloat(col(r,'miktar')) || 0;
-      return s + m;
-    }, 0);
+    const totalFiyat = rows.reduce((s,r) => s + (parseFloat(String(col(r)('fiyat')).replace(/[^0-9.,]/g,'').replace(',','.')) || 0), 0);
+    const totalMiktar = rows.reduce((s,r) => s + (parseFloat(col(r)('miktar')) || 0), 0);
     return { total, totalFiyat, totalMiktar };
   }
 
   function filtered() {
     return data.filter(r => {
-      const matchFilter = activeFilter === 'all' || col(r,'gönderen','gonderen') === activeFilter;
+      const c = col(r);
+      const matchG = activeFilter === 'all' || c('gönderen','gonderen') === activeFilter;
+      const matchS = statusFilter === 'all' || (c('status') || '').toLowerCase() === statusFilter;
       const q = searchVal.toLowerCase();
-      const matchSearch = !q || Object.values(r).some(v => String(v).toLowerCase().includes(q));
-      return matchFilter && matchSearch;
+      const matchQ = !q || Object.values(r).some(v => String(v).toLowerCase().includes(q));
+      return matchG && matchS && matchQ;
     });
+  }
+
+  function updateStatus(rowId, newStatus, sheetName, btnEl, fbEl) {
+    if (!GS_URL) return;
+    btnEl.disabled = true; btnEl.textContent = '...';
+    const cbName = 'us_' + Date.now();
+    const timeout = setTimeout(() => { delete window[cbName]; btnEl.disabled=false; btnEl.textContent='Kaydet'; }, 10000);
+    window[cbName] = (res) => {
+      clearTimeout(timeout); delete window[cbName];
+      document.getElementById('_us_'+cbName)&&document.getElementById('_us_'+cbName).remove();
+      btnEl.disabled=false; btnEl.textContent='Kaydet';
+      if (res.ok) {
+        // local update
+        const found = data.find(r => String(col(r)('id','ID')) === String(rowId) || String(r._row) === String(rowId));
+        if (found) {
+          const sKey = Object.keys(found).find(k => k.toLowerCase() === 'status') || 'status';
+          found[sKey] = newStatus;
+          const wrap = document.getElementById('sbw_'+rowId);
+          if (wrap) wrap.innerHTML = statusBadge(newStatus);
+        }
+        fbEl.textContent='✓ Kaydedildi'; fbEl.classList.add('show');
+        setTimeout(()=>fbEl.classList.remove('show'),2000);
+      } else { alert('Hata: '+(res.error||'?')); }
+    };
+    const params = new URLSearchParams({action:'update_row', sheet:sheetName, data:JSON.stringify({id:rowId, status:newStatus}), callback:cbName});
+    if (SS_ID) params.append('ssId', SS_ID);
+    const s = document.createElement('script'); s.id='_us_'+cbName; s.src=GS_URL+'?'+params;
+    s.onerror=()=>{ clearTimeout(timeout); delete window[cbName]; btnEl.disabled=false; btnEl.textContent='Kaydet'; };
+    document.head.appendChild(s);
   }
 
   function draw() {
     const rows = filtered();
     const { total, totalFiyat, totalMiktar } = calcSummary(rows);
+    const sheetName = tool.sheet_name || tool.id;
 
-    el.innerHTML = `
-      <div class="siparis-toolbar">
-        <input class="siparis-search" placeholder="Ara... (sipariş no, gönderen, konu...)" id="sipSearch" value="${searchVal}">
-        <button class="filter-btn ${activeFilter==='all'?'active':''}" onclick="setSipFilter('all')">Tümü (${data.length})</button>
-        ${gonderenler.map(g => `
-          <button class="filter-btn ${activeFilter===g?'active':''}" onclick="setSipFilter('${g.replace(/'/g,"\'")}')">
-            ${g} (${data.filter(r => col(r,'gönderen','gonderen') === g).length})
-          </button>`).join('')}
-      </div>
+    el.innerHTML =
+      '<div class="siparis-toolbar">' +
+        '<input class="siparis-search" placeholder="Ara..." id="sipSearch" value="' + searchVal + '">' +
+        '<button class="filter-btn ' + (activeFilter==='all'?'active':'') + '" onclick="setSipFilter('all')">Tümü (' + data.length + ')</button>' +
+        gonderenler.map(g =>
+          '<button class="filter-btn ' + (activeFilter===g?'active':'') + '" onclick="setSipFilter('' + g.replace(/'/g,"\'") + '')">' +
+          g + ' (' + data.filter(r=>col(r)('gönderen','gonderen')===g).length + ')</button>'
+        ).join('') +
+        '<select class="filter-btn" style="background:var(--surface)" onchange="setSipStatus(this.value)">' +
+          '<option value="all"' + (statusFilter==='all'?' selected':'') + '>Tüm Durumlar</option>' +
+          '<option value="yeni"' + (statusFilter==='yeni'?' selected':'') + '>🔵 Yeni</option>' +
+          '<option value="hazirlaniyor"' + (statusFilter==='hazirlaniyor'?' selected':'') + '>🟡 Hazırlanıyor</option>' +
+          '<option value="yolda"' + (statusFilter==='yolda'?' selected':'') + '>🟣 Yolda</option>' +
+          '<option value="tamamlandi"' + (statusFilter==='tamamlandi'?' selected':'') + '>🟢 Tamamlandı</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="siparis-summary">' +
+        '<div class="summary-card"><div class="summary-val">' + total + '</div><div class="summary-lbl">Sipariş</div></div>' +
+        '<div class="summary-card"><div class="summary-val">' + (totalMiktar||'—') + '</div><div class="summary-lbl">Toplam Miktar</div></div>' +
+        '<div class="summary-card"><div class="summary-val">' + (totalFiyat>0?totalFiyat.toLocaleString('tr-TR',{minimumFractionDigits:2}):'—') + '</div><div class="summary-lbl">Toplam Değer</div></div>' +
+        '<div class="summary-card"><div class="summary-val">' + gonderenler.length + '</div><div class="summary-lbl">Gönderen</div></div>' +
+      '</div>' +
+      '<div class="siparis-list">' +
+        rows.map(row => {
+          const c = col(row);
+          const rowId = c('id','ID') || row._row;
+          const resimUrl = c('resimurl','Resim_URL','resim_url');
+          const imgUrl   = c('image');
+          const thumbSrc = resimUrl || imgUrl;
+          const thumb = thumbSrc
+            ? '<div class="siparis-thumb"><img src="' + thumbSrc + '" onerror="this.parentElement.textContent='📦'"></div>'
+            : '<div class="siparis-thumb">📦</div>';
 
-      <div class="siparis-summary">
-        <div class="summary-card">
-          <div class="summary-val">${total}</div>
-          <div class="summary-lbl">Sipariş</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-val">${totalMiktar > 0 ? totalMiktar : '—'}</div>
-          <div class="summary-lbl">Toplam Miktar</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-val">${totalFiyat > 0 ? totalFiyat.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—'}</div>
-          <div class="summary-lbl">Toplam Değer</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-val">${gonderenler.length}</div>
-          <div class="summary-lbl">Gönderen</div>
-        </div>
-      </div>
+          // BAŞLIK: Ful_Title > Konu > shortTitle
+          const fulTitle = c('Ful_Title','fulltitle');
+          const konu     = c('Konu','konu');
+          const shortT   = c('shortTitle','shorttitle');
+          const displayTitle = fulTitle || konu || shortT || String(rowId);
 
-      <div class="siparis-list" id="sipList">
-        ${rows.map((row, i) => {
-          const imgUrl = col(row,'image','resimurl','Resim_URL');
-          const thumb = imgUrl
-            ? `<div class="siparis-thumb"><img src="${imgUrl}" onerror="this.parentElement.innerHTML='📦'"></div>`
-            : `<div class="siparis-thumb">📦</div>`;
-
-          const title = col(row,'fulltitle','Ful_Title','shorttitle','shortTitle','konu','Konu') || col(row,'ID','id');
-          const short = col(row,'shortTitle','shorttitle') || '';
-          const gonderen = col(row,'gönderen','gonderen');
-          const alici = col(row,'alıcı','alici');
-          const tarih = col(row,'tarih');
-          const siparisNo = col(row,'siparişno','siparis_no','Siparis_No','SiparisNo');
-          const miktar = col(row,'miktar');
-          const fiyat = col(row,'fiyat');
-          const ean = col(row,'ean','EAN');
-          const mailUrl = col(row,'mailurl','Mail_URL');
-          const refKod = col(row,'referanskodu','Referans_kodu','referans_kodu');
-          const mesaj = col(row,'mesaj');
-
-          const fiyatNum = parseFloat(String(fiyat).replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
-
-          // Detay alanları — tüm kolon değerleri
+          const gonderen  = c('gönderen','gonderen');
+          const alici     = c('alıcı','alici');
+          const tarih     = c('tarih');
+          const ean       = c('ean','EAN');
+          const miktar    = c('miktar');
+          const fiyat     = c('fiyat');
+          const refKod    = c('Referans_kodu','referans_kodu','referanskodu');
+          const status    = c('status') || '';
+          const fiyatNum  = parseFloat(String(fiyat).replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
           const detailKeys = Object.keys(row).filter(k => k !== '_row');
 
-          return `
-            <div class="siparis-card" id="sc_${i}" onclick="toggleSipCard(${i})">
-              ${thumb}
-              <div class="siparis-main">
-                <div class="siparis-title" title="${title}">${short || title}</div>
-                <div class="siparis-meta">
-                  ${gonderen ? `<span>✉️ <span class="highlight">${gonderen}</span></span>` : ''}
-                  ${alici    ? `<span>→ <span class="highlight">${alici}</span></span>` : ''}
-                  ${tarih    ? `<span>📅 ${tarih}</span>` : ''}
-                  ${ean      ? `<span class="ean-badge">${ean}</span>` : ''}
-                </div>
-                <div class="siparis-konu">${col(row,'konu','Konu') || ''}</div>
-              </div>
-              <div class="siparis-right">
-                ${fiyatNum > 0 ? `<div class="siparis-fiyat">${fiyatNum.toLocaleString('tr-TR', {minimumFractionDigits:2})} ₺</div>` : '<div class="siparis-fiyat">—</div>'}
-                ${miktar ? `<div class="siparis-miktar">x${miktar}</div>` : ''}
-                ${siparisNo ? `<div class="siparis-no">#${siparisNo}</div>` : ''}
-              </div>
-              <div class="siparis-detail">
-                ${detailKeys.map(k => {
-                  let val = row[k];
-                  if (!val && val !== 0) return '';
-                  let display = String(val);
-                  if (display.startsWith('http')) display = `<a href="${display}" target="_blank">🔗 Aç</a>`;
-                  return `<div class="detail-item"><div class="detail-key">${k}</div><div class="detail-val">${display}</div></div>`;
-                }).filter(Boolean).join('')}
-              </div>
-            </div>`;
-        }).join('')}
-      </div>`;
+          const detailHTML = detailKeys.map(k => {
+            let val = row[k];
+            if (!val && val !== 0) return '';
+            let display = String(val);
+            if (display.startsWith('http')) display = '<a href="' + display + '" target="_blank" onclick="event.stopPropagation()">🔗 Aç</a>';
+            return '<div class="detail-item"><div class="detail-key">' + k + '</div><div class="detail-val">' + display + '</div></div>';
+          }).filter(Boolean).join('');
 
-    document.getElementById('sipSearch').addEventListener('input', e => {
-      searchVal = e.target.value;
-      draw();
-    });
+          return (
+            '<div class="siparis-card" id="sc_' + rowId + '">' +
+              '<div onclick="toggleSipCard('' + rowId + '')" style="display:contents">' +
+                thumb +
+                '<div class="siparis-main">' +
+                  '<div class="siparis-title">' + displayTitle + '</div>' +
+                  '<div class="siparis-meta">' +
+                    (gonderen ? '<span>✉️ <span class="highlight">' + gonderen + '</span></span>' : '') +
+                    (alici    ? '<span>→ <span class="highlight">' + alici + '</span></span>' : '') +
+                    (tarih    ? '<span>📅 ' + tarih + '</span>' : '') +
+                    (ean      ? '<span class="ean-badge">' + ean + '</span>' : '') +
+                  '</div>' +
+                '</div>' +
+                '<div class="siparis-right">' +
+                  (fiyatNum>0 ? '<div class="siparis-fiyat">' + fiyatNum.toLocaleString('tr-TR',{minimumFractionDigits:2}) + ' ₺</div>' : '<div class="siparis-fiyat">—</div>') +
+                  (miktar ? '<div class="siparis-miktar">x' + miktar + '</div>' : '') +
+                  (refKod ? '<div class="siparis-no" style="margin-top:4px">' + refKod + '</div>' : '') +
+                  '<div id="sbw_' + rowId + '" style="margin-top:6px">' + statusBadge(status) + '</div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="siparis-detail">' +
+                '<div style="grid-column:1/-1">' +
+                  '<div class="status-editor">' +
+                    '<label>Durum</label>' +
+                    '<select class="status-select" id="sel_' + rowId + '">' +
+                      '<option value="">— Belirsiz</option>' +
+                      '<option value="yeni"' + (status==='yeni'?' selected':'') + '>🔵 Yeni</option>' +
+                      '<option value="hazirlaniyor"' + (status==='hazirlaniyor'?' selected':'') + '>🟡 Hazırlanıyor</option>' +
+                      '<option value="yolda"' + (status==='yolda'?' selected':'') + '>🟣 Yolda</option>' +
+                      '<option value="tamamlandi"' + (status==='tamamlandi'?' selected':'') + '>🟢 Tamamlandı</option>' +
+                    '</select>' +
+                    '<button class="btn-save-status" id="savebtn_' + rowId + '" onclick="event.stopPropagation();sipSaveStatus('' + rowId + '','' + sheetName + '')">Kaydet</button>' +
+                    '<span class="save-feedback" id="fb_' + rowId + '"></span>' +
+                  '</div>' +
+                '</div>' +
+                detailHTML +
+              '</div>' +
+            '</div>'
+          );
+        }).join('') +
+      '</div>';
+
+    document.getElementById('sipSearch').addEventListener('input', e => { searchVal = e.target.value; draw(); });
   }
 
-  window.setSipFilter = (f) => { activeFilter = f; draw(); };
-  window.toggleSipCard = (i) => {
-    document.getElementById('sc_' + i)?.classList.toggle('expanded');
+  window.setSipFilter  = f => { activeFilter  = f; draw(); };
+  window.setSipStatus  = f => { statusFilter  = f; draw(); };
+  window.toggleSipCard = id => { document.getElementById('sc_'+id)?.classList.toggle('expanded'); };
+  window.sipSaveStatus = (rowId, sheetName) => {
+    const sel = document.getElementById('sel_'+rowId);
+    const btn = document.getElementById('savebtn_'+rowId);
+    const fb  = document.getElementById('fb_'+rowId);
+    if (sel && btn && fb) updateStatus(rowId, sel.value, sheetName, btn, fb);
   };
 
   draw();
