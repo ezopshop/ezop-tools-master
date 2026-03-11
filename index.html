@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ezop Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --accent: #00ff88;
+    --accent2: #7c3aed;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,.95);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo { font-family: var(--display); font-weight: 800; font-size: 18px; }
+  .logo span { color: var(--accent); }
+
+  .tool-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    background: rgba(0,255,136,.1);
+    color: var(--accent);
+    border-radius: 20px;
+    border: 1px solid rgba(0,255,136,.2);
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tool-header {
+    margin-bottom: 28px;
+  }
+
+  .tool-title {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .tool-desc {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* ── SEARCH / FILTER BAR ── */
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    flex: 1;
+    min-width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── TABLE RENDERER ── */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  thead tr { background: var(--surface2); }
+  thead th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--accent); }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(42,42,58,.5);
+    transition: background .15s;
+  }
+  tbody tr:hover { background: rgba(0,255,136,.03); }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+
+  /* ── GRID RENDERER ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .data-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all .2s;
+  }
+  .data-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,255,136,.06);
+  }
+
+  .card-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .card-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(42,42,58,.5);
+  }
+  .card-row:last-child { border-bottom: none; }
+  .card-key { color: var(--muted); }
+  .card-val { color: var(--text); }
+
+  /* ── FLASHCARD RENDERER ── */
+  .flashcard-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+  }
+
+  .flashcard-progress {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  .flashcard {
+    width: 100%;
+    max-width: 560px;
+    height: 300px;
+    perspective: 1000px;
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+
+  .flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform .5s;
+  }
+
+  .flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+
+  .flashcard-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    backface-visibility: hidden;
+    text-align: center;
+  }
+
+  .flashcard-face.back {
+    transform: rotateY(180deg);
+    background: var(--surface2);
+    border-color: var(--accent);
+  }
+
+  .flashcard-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .flashcard-text {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+
+  .fc-nav {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* ── CHECKLIST RENDERER ── */
+  .checklist-wrap { display: flex; flex-direction: column; gap: 8px; }
+
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: all .2s;
+    cursor: pointer;
+  }
+
+  .check-item:hover { border-color: rgba(0,255,136,.3); }
+  .check-item.done { opacity: .5; }
+  .check-item.done .check-label { text-decoration: line-through; color: var(--muted); }
+
+  .check-box {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+  }
+
+  .check-item.done .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+  }
+
+  .check-label { font-size: 14px; flex: 1; }
+  .check-meta { font-size: 11px; color: var(--muted); }
+
+  /* ── LOADING / ERROR ── */
+  .state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .state-icon { font-size: 48px; margin-bottom: 16px; opacity: .4; }
+  .state-title { font-family: var(--display); font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--text); }
+  .state-desc { font-size: 13px; line-height: 1.6; }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid rgba(0,255,136,.15);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .2s;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: #00e07a; }
+  .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── HOME (no tool param) ── */
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+
+  .home-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  .home-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,255,136,.08);
+  }
+
+  .home-card-renderer {
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+
+  .home-card-title {
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .home-card-desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .count-badge {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 12px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="?" style="text-decoration:none">
+    <div class="logo">ezop<span>tools</span></div>
+  </a>
+  <div id="toolBadge"></div>
+</header>
+
+<div class="container" id="app">
+  <div class="state-box">
+    <div class="spinner"></div>
+    <div class="state-title">Yükleniyor...</div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────
+const CONFIG = (() => {
+  const saved = localStorage.getItem('ezop_config');
+  return saved ? JSON.parse(saved) : {};
+})();
+
+const GS_URL = CONFIG.gsUrl || '';
+const SS_ID  = CONFIG.ssId  || '';
+
+const TOOL_ID = new URLSearchParams(location.search).get('tool');
+
+// ─── BOOT ────────────────────────────────────────────────────
+window.onload = async () => {
+  if (!TOOL_ID) {
+    await renderHome();
+  } else {
+    await renderTool(TOOL_ID);
+  }
+};
+
+// ─── HOME — araç listesi ─────────────────────────────────────
+async function renderHome() {
+  const app = document.getElementById('app');
+
+  try {
+    const data = await fetchSheet('_registry');
+
+    if (!data.length) {
+      app.innerHTML = `
+        <div class="state-box">
+          <div class="state-icon">📭</div>
+          <div class="state-title">Henüz araç yok</div>
+          <div class="state-desc">Admin panelden ilk aracını oluştur.</div>
+        </div>`;
+      return;
+    }
+
+    document.title = 'Ezop Tools';
+    app.innerHTML = `
+      <div class="tool-header">
+        <div class="tool-title">Araç Kataloğu</div>
+        <div class="tool-desc">${data.length} araç mevcut</div>
+      </div>
+      <div class="home-grid">
+        ${data.filter(t => t.status !== 'inactive').map(tool => `
+          <a class="home-card" href="?tool=${tool.id}">
+            <div class="home-card-renderer">${tool.renderer || '—'}</div>
+            <div class="home-card-title">${tool.title || tool.id}</div>
+            <div class="home-card-desc">${tool.description || ''}</div>
+            <span class="count-badge">${tool.id}</span>
+          </a>
+        `).join('')}
+      </div>`;
+
+  } catch (err) {
+    renderError(app, err.message);
+  }
+}
+
+// ─── TOOL ────────────────────────────────────────────────────
+async function renderTool(toolId) {
+  const app = document.getElementById('app');
+
+  try {
+    // Registry'den tool bilgisini al
+    const registry = await fetchSheet('_registry');
+    const tool = registry.find(t => t.id === toolId);
+
+    if (!tool) {
+      renderError(app, `"${toolId}" aracı bulunamadı.`);
+      return;
+    }
+
+    // Tool verisini al
+    const data = await fetchSheet(tool.sheet_name || toolId);
+
+    document.title = tool.title || toolId;
+    document.getElementById('toolBadge').innerHTML =
+      `<span class="tool-badge">${tool.renderer || 'table'}</span>`;
+
+    app.innerHTML = `
+      <div class="tool-header">
+        <div class="tool-title">${tool.title || toolId}</div>
+        <div class="tool-desc">${tool.description || ''}</div>
+      </div>
+      <div id="renderer"></div>`;
+
+    const renderer = tool.renderer || 'table';
+    const target = document.getElementById('renderer');
+
+    if (renderer === 'table')     renderTable(target, data);
+    else if (renderer === 'grid') renderGrid(target, data);
+    else if (renderer === 'flashcard') renderFlashcard(target, data);
+    else if (renderer === 'checklist') renderChecklist(target, data);
+    else renderTable(target, data); // fallback
+
+  } catch (err) {
+    renderError(app, err.message);
+  }
+}
+
+// ─── FETCH ───────────────────────────────────────────────────
+async function fetchSheet(sheetName) {
+  if (!GS_URL) throw new Error('GS URL tanımlı değil. Admin panelden ayarla.');
+  const params = new URLSearchParams({ action: 'read', sheet: sheetName });
+  if (SS_ID) params.append('ssId', SS_ID);
+  const res = await fetch(`${GS_URL}?${params}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error || 'Veri alınamadı');
+  return json.data;
+}
+
+// ─── TABLE RENDERER ──────────────────────────────────────────
+function renderTable(el, data) {
+  if (!data.length) { el.innerHTML = emptyHTML(); return; }
+
+  const keys = Object.keys(data[0]).filter(k => k !== '_row');
+  let sortKey = keys[0], sortAsc = true;
+  let filterVal = '';
+
+  function draw() {
+    const filtered = data.filter(row =>
+      !filterVal || Object.values(row).some(v =>
+        String(v).toLowerCase().includes(filterVal.toLowerCase())
+      )
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      const av = String(a[sortKey] || ''), bv = String(b[sortKey] || '');
+      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+
+    el.innerHTML = `
+      <div class="toolbar">
+        <input class="search-input" placeholder="Ara..." id="tblSearch" value="${filterVal}">
+        <span style="font-size:12px;color:var(--muted);align-self:center">${sorted.length} / ${data.length} kayıt</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>${keys.map(k => `
+              <th onclick="tblSort('${k}')" style="${sortKey===k?'color:var(--accent)':''}">
+                ${k} ${sortKey===k?(sortAsc?'↑':'↓'):''}
+              </th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${sorted.map(row => `
+              <tr>${keys.map(k => `<td>${row[k] ?? ''}</td>`).join('')}</tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>`;
+
+    document.getElementById('tblSearch').addEventListener('input', e => {
+      filterVal = e.target.value;
+      draw();
+    });
+  }
+
+  window.tblSort = (k) => {
+    if (sortKey === k) sortAsc = !sortAsc;
+    else { sortKey = k; sortAsc = true; }
+    draw();
+  };
+
+  draw();
+}
+
+// ─── GRID RENDERER ───────────────────────────────────────────
+function renderGrid(el, data) {
+  if (!data.length) { el.innerHTML = emptyHTML(); return; }
+
+  const keys = Object.keys(data[0]).filter(k => k !== '_row');
+  const titleKey = keys[0];
+
+  el.innerHTML = `
+    <div class="toolbar">
+      <input class="search-input" placeholder="Ara..." id="gridSearch">
+    </div>
+    <div class="cards-grid" id="cardsGrid">
+      ${data.map(row => `
+        <div class="data-card">
+          <div class="card-title">${row[titleKey] || '—'}</div>
+          ${keys.slice(1).map(k => `
+            <div class="card-row">
+              <span class="card-key">${k}</span>
+              <span class="card-val">${row[k] ?? ''}</span>
+            </div>`).join('')}
+        </div>`).join('')}
+    </div>`;
+
+  document.getElementById('gridSearch').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('.data-card').forEach((card, i) => {
+      const match = Object.values(data[i]).some(v => String(v).toLowerCase().includes(q));
+      card.style.display = match ? '' : 'none';
+    });
+  });
+}
+
+// ─── FLASHCARD RENDERER ──────────────────────────────────────
+function renderFlashcard(el, data) {
+  if (!data.length) { el.innerHTML = emptyHTML(); return; }
+
+  const keys = Object.keys(data[0]).filter(k => k !== '_row');
+  const frontKey = keys[0] || 'ön';
+  const backKey  = keys[1] || 'arka';
+
+  let idx = 0;
+
+  function draw() {
+    const card = data[idx];
+    el.innerHTML = `
+      <div class="flashcard-wrap">
+        <div class="flashcard-progress">${idx + 1} / ${data.length}</div>
+        <div class="flashcard" id="fc" onclick="flipCard()">
+          <div class="flashcard-inner">
+            <div class="flashcard-face front">
+              <div class="flashcard-label">${frontKey}</div>
+              <div class="flashcard-text">${card[frontKey] || ''}</div>
+            </div>
+            <div class="flashcard-face back">
+              <div class="flashcard-label">${backKey}</div>
+              <div class="flashcard-text">${card[backKey] || ''}</div>
+            </div>
+          </div>
+        </div>
+        <div class="fc-nav">
+          <button class="btn btn-ghost" onclick="fcPrev()" ${idx===0?'disabled':''}>← Önceki</button>
+          <button class="btn btn-primary" onclick="flipCard()">Çevir</button>
+          <button class="btn btn-ghost" onclick="fcNext()" ${idx===data.length-1?'disabled':''}>Sonraki →</button>
+        </div>
+      </div>`;
+  }
+
+  window.flipCard = () => document.getElementById('fc')?.classList.toggle('flipped');
+  window.fcNext = () => { if (idx < data.length - 1) { idx++; draw(); } };
+  window.fcPrev = () => { if (idx > 0) { idx--; draw(); } };
+
+  draw();
+}
+
+// ─── CHECKLIST RENDERER ──────────────────────────────────────
+function renderChecklist(el, data) {
+  if (!data.length) { el.innerHTML = emptyHTML(); return; }
+
+  const keys = Object.keys(data[0]).filter(k => k !== '_row');
+  const labelKey = keys[0];
+  const doneKey  = keys.find(k => k.toLowerCase().includes('tamamlan') || k.toLowerCase() === 'done') || keys[1];
+
+  const state = data.map(row => ({
+    ...row,
+    _done: String(row[doneKey] || '').toLowerCase() === 'true' || row[doneKey] === true
+  }));
+
+  function draw() {
+    const done = state.filter(r => r._done).length;
+    el.innerHTML = `
+      <div style="margin-bottom:16px;font-size:13px;color:var(--muted)">
+        ${done} / ${state.length} tamamlandı
+        <div style="margin-top:8px;height:4px;background:var(--surface2);border-radius:2px">
+          <div style="width:${Math.round(done/state.length*100)}%;height:100%;background:var(--accent);border-radius:2px;transition:width .3s"></div>
+        </div>
+      </div>
+      <div class="checklist-wrap">
+        ${state.map((row, i) => `
+          <div class="check-item ${row._done ? 'done' : ''}" onclick="toggleCheck(${i})">
+            <div class="check-box">${row._done ? '✓' : ''}</div>
+            <div class="check-label">${row[labelKey] || ''}</div>
+            ${keys.slice(2).map(k => `<div class="check-meta">${row[k] || ''}</div>`).join('')}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  window.toggleCheck = (i) => {
+    state[i]._done = !state[i]._done;
+    draw();
+  };
+
+  draw();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────
+function emptyHTML() {
+  return `<div class="state-box">
+    <div class="state-icon">📭</div>
+    <div class="state-title">Veri yok</div>
+    <div class="state-desc">Sheet boş. Tabloya veri gir.</div>
+  </div>`;
+}
+
+function renderError(el, msg) {
+  el.innerHTML = `<div class="state-box">
+    <div class="state-icon">⚠️</div>
+    <div class="state-title">Hata</div>
+    <div class="state-desc">${msg}</div>
+  </div>`;
+}
+</script>
+</body>
+</html>
