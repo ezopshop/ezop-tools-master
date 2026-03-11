@@ -674,6 +674,27 @@
   .lbl-sub { font-size: 9px; color: var(--accent); display: block; }
   .summary-sub { font-size: 10px; color: #f87171; margin-top: 4px; }
 
+  /* ── DATE RANGE ── */
+  .date-range-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .date-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color .2s;
+    width: 130px;
+  }
+  .date-input:focus { outline: none; border-color: var(--accent); }
+  .date-input::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.5); cursor: pointer; }
+
   /* ── PAGINATION ── */
   .pagination {
     display: flex;
@@ -1053,6 +1074,8 @@ function renderSiparis(el, data, tool) {
   let activeFilter = 'all';
   let statusFilter = 'all';
   let dateFilter   = 'all';
+  let dateFrom     = '';
+  let dateTo       = '';
   let searchVal    = '';
 
   const gonderenler = [...new Set(data.map(r => gc(r,'gönderen','gonderen')).filter(Boolean))];
@@ -1103,9 +1126,13 @@ function renderSiparis(el, data, tool) {
         if (dateFilter !== 'all') {
           const t = new Date(gc(r,'tarih') || 0);
           const diffDays = (now - t) / (1000 * 60 * 60 * 24);
-          if (dateFilter === '7')  dMatch = diffDays <= 7;
-          if (dateFilter === '30') dMatch = diffDays <= 30;
-          if (dateFilter === '90') dMatch = diffDays <= 90;
+          if (dateFilter === '7')     dMatch = diffDays <= 7;
+          if (dateFilter === '30')    dMatch = diffDays <= 30;
+          if (dateFilter === '90')    dMatch = diffDays <= 90;
+          if (dateFilter === 'range') {
+            if (dateFrom) dMatch = dMatch && t >= new Date(dateFrom);
+            if (dateTo)   dMatch = dMatch && t <= new Date(dateTo + 'T23:59:59');
+          }
         }
         return gMatch && sMatch && qMatch && dMatch;
       })
@@ -1242,12 +1269,21 @@ function renderSiparis(el, data, tool) {
         <select class="filter-btn" style="background:var(--surface)" onchange="window._sip.status(this.value)">
           ${statusOpts}
         </select>
-        <select class="filter-btn" style="background:var(--surface)" onchange="window._sip.date(this.value)">
+        <select class="filter-btn" style="background:var(--surface)" onchange="window._sip.date(this.value)" id="dateFilterSel">
           <option value="all"${dateFilter==='all'?' selected':''}>Tüm Zamanlar</option>
           <option value="7"${dateFilter==='7'?' selected':''}>Son 7 Gün</option>
           <option value="30"${dateFilter==='30'?' selected':''}>Son 30 Gün</option>
           <option value="90"${dateFilter==='90'?' selected':''}>Son 90 Gün</option>
+          <option value="range"${dateFilter==='range'?' selected':''}>Tarih Aralığı...</option>
         </select>
+        ${dateFilter==='range' ? `
+        <div class="date-range-wrap">
+          <input type="date" class="date-input" id="dateFrom" value="${dateFrom}"
+            onchange="window._sip.setFrom(this.value)">
+          <span style="color:var(--muted);font-size:12px">—</span>
+          <input type="date" class="date-input" id="dateTo" value="${dateTo}"
+            onchange="window._sip.setTo(this.value)">
+        </div>` : ''}
       </div>
       ${(() => {
         const gs = calcSummary(data); // unfiltered global summary
@@ -1291,7 +1327,9 @@ function renderSiparis(el, data, tool) {
     page: p => { currentPage = Math.max(1, Math.min(p, Math.ceil(getFiltered().length/PAGE_SIZE))); draw(); window.scrollTo(0,0); },
     filter: f  => { activeFilter = f; currentPage = 1; draw(); },
     status: f  => { statusFilter = f; currentPage = 1; draw(); },
-    date:   f  => { dateFilter   = f; currentPage = 1; draw(); },
+    date:   f  => { dateFilter = f; if (f!=='range'){dateFrom='';dateTo='';} currentPage = 1; draw(); },
+    setFrom: v => { dateFrom = v; currentPage = 1; draw(); },
+    setTo:   v => { dateTo   = v; currentPage = 1; draw(); },
     toggle: id => { document.getElementById('sc_'+id)?.classList.toggle('expanded'); },
     save:   (rowId, sheetName) => {
       const sel = document.getElementById('sel_'+rowId);
