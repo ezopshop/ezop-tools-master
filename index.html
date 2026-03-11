@@ -772,9 +772,11 @@ function jsonpGet(params) {
 
 // ─── ACCESS / AUTH ────────────────────────────────────────────
 function checkAccess(cfg) {
-  if (cfg.access_mode !== 'key') return true;
+  // access_mode tanımsızsa güvenli taraf: key iste
+  const mode = (cfg.access_mode || 'key').toLowerCase().trim();
+  if (mode === 'open') return true;
   const saved = sessionStorage.getItem('ezop_access');
-  return saved === cfg.access_key;
+  return saved === (cfg.access_key || '');
 }
 
 function showLoginScreen(cfg) {
@@ -824,15 +826,17 @@ window.onload = async () => {
   // 1) _config oku
   try {
     const res = await jsonpGet({ action: 'read', sheet: '_config' });
+    console.log('_config response:', JSON.stringify(res).slice(0,200));
     if (res.ok && res.data) {
       res.data.forEach(row => {
         const k = (row.key || '').trim();
         const v = (row.value || '').toString().trim();
         if (k) APP_CONFIG[k] = v;
       });
+      console.log('APP_CONFIG:', JSON.stringify(APP_CONFIG));
     }
   } catch(e) {
-    console.warn('_config okunamadı, devam ediliyor:', e.message);
+    console.warn('_config okunamadı:', e.message);
   }
 
   // 2) Erişim kontrolü
