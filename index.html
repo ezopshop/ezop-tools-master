@@ -723,6 +723,126 @@
     color: var(--text);
   }
 
+  /* ── LOGIN ── */
+  .login-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 65px);
+    padding: 20px;
+  }
+
+  .login-box {
+    width: 100%;
+    max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.4);
+  }
+
+  .login-logo {
+    font-family: var(--display);
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .login-logo span { color: var(--accent); }
+
+  .login-sub {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 8px;
+  }
+
+  .login-field {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .login-field input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 46px 13px 16px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 2px;
+    transition: border-color .2s;
+  }
+  .login-field input:focus { outline: none; border-color: var(--accent); }
+  .login-field input::placeholder { letter-spacing: 3px; color: var(--muted); }
+
+  .eye-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color .2s;
+  }
+  .eye-btn:hover { color: var(--text); }
+
+  .login-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    letter-spacing: .5px;
+  }
+  .login-btn:hover { background: #00e07a; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,255,136,.25); }
+  .login-btn:active { transform: translateY(0); }
+
+  .login-err {
+    font-size: 12px;
+    color: #f87171;
+    text-align: center;
+    min-height: 16px;
+    transition: all .2s;
+  }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-8px); }
+    40%      { transform: translateX(8px); }
+    60%      { transform: translateX(-5px); }
+    80%      { transform: translateX(5px); }
+  }
+  .shake { animation: shake .4s ease; }
+
+  /* ── MOBILE ── */
+  @media (max-width: 600px) {
+    .container { padding: 20px 16px; }
+    header { padding: 14px 16px; }
+    .siparis-card { grid-template-columns: auto 1fr; }
+    .siparis-right { grid-column: 2; }
+    .siparis-summary { grid-template-columns: repeat(2, 1fr); }
+    .siparis-toolbar { gap: 8px; }
+    .siparis-toolbar input { min-width: 100%; }
+    .tool-title { font-size: 22px; }
+    .summary-val { font-size: 20px; }
+  }
+
 </style>
 </head>
 <body>
@@ -782,30 +902,60 @@ function checkAccess(cfg) {
 function showLoginScreen(cfg) {
   const app = document.getElementById('app');
   const name = cfg.app_name || 'Ezop Tools';
+  // Update page title and header logo
+  document.title = name;
+
   app.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px">
-      <div style="font-family:var(--display);font-size:32px;font-weight:800">${name}</div>
-      <div style="color:var(--muted);font-size:13px">Erişim için anahtar gerekli</div>
-      <div style="display:flex;gap:10px;width:100%;max-width:360px">
-        <input id="keyInput" type="password" placeholder="Erişim anahtarı..."
-          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;
-                 padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:14px"
-          onkeydown="if(event.key==='Enter')window._tryLogin()">
-        <button onclick="window._tryLogin()"
-          style="padding:12px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;
-                 font-family:var(--mono);font-weight:700;cursor:pointer">Giriş</button>
+    <div class="login-wrap">
+      <div class="login-box">
+        <div class="login-logo">${name.replace(/([a-z])([A-Z]|tools)/gi, '$1<span>$2</span>')}</div>
+        <div class="login-sub">Devam etmek için erişim anahtarını gir</div>
+        <div class="login-field">
+          <input id="keyInput" type="password" placeholder="••••••••••"
+            autocomplete="current-password" spellcheck="false"
+            onkeydown="if(event.key==='Enter')window._tryLogin()">
+          <button class="eye-btn" id="eyeBtn" onclick="window._toggleEye()" type="button" tabindex="-1">
+            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <button class="login-btn" onclick="window._tryLogin()">Giriş Yap</button>
+        <div id="loginErr" class="login-err"></div>
       </div>
-      <div id="loginErr" style="color:#f87171;font-size:12px;min-height:16px"></div>
     </div>`;
+
+  document.getElementById('keyInput').focus();
+
+  window._toggleEye = () => {
+    const inp = document.getElementById('keyInput');
+    const icon = document.getElementById('eyeIcon');
+    if (inp.type === 'password') {
+      inp.type = 'text';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      inp.type = 'password';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  };
 
   window._tryLogin = () => {
     const val = document.getElementById('keyInput').value.trim();
+    const errEl = document.getElementById('loginErr');
+    if (!val) { errEl.textContent = 'Anahtar boş olamaz'; return; }
     if (val === cfg.access_key) {
       sessionStorage.setItem('ezop_access', val);
+      errEl.textContent = '';
       boot();
     } else {
-      document.getElementById('loginErr').textContent = '✗ Yanlış anahtar';
+      errEl.textContent = '✗ Yanlış anahtar, tekrar dene';
       document.getElementById('keyInput').value = '';
+      document.getElementById('keyInput').focus();
+      // Shake animation
+      const box = document.querySelector('.login-field');
+      box.classList.add('shake');
+      setTimeout(() => box.classList.remove('shake'), 500);
     }
   };
 }
@@ -813,6 +963,17 @@ function showLoginScreen(cfg) {
 // ─── BOOT ────────────────────────────────────────────────────
 async function boot() {
   const app = document.getElementById('app');
+  // Update title + header from config
+  if (APP_CONFIG.app_name) {
+    document.title = APP_CONFIG.app_name;
+    const logo = document.querySelector('.logo');
+    if (logo) {
+      const parts = APP_CONFIG.app_name.toLowerCase().split(' ');
+      logo.innerHTML = parts.length > 1
+        ? parts[0] + '<span>' + parts.slice(1).join(' ') + '</span>'
+        : APP_CONFIG.app_name.slice(0,-5) + '<span>' + APP_CONFIG.app_name.slice(-5) + '</span>';
+    }
+  }
   app.innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-title">Yükleniyor...</div></div>';
 
   if (!TOOL_ID) {
@@ -826,14 +987,12 @@ window.onload = async () => {
   // 1) _config oku
   try {
     const res = await jsonpGet({ action: 'read', sheet: '_config' });
-    console.log('_config response:', JSON.stringify(res).slice(0,200));
     if (res.ok && res.data) {
       res.data.forEach(row => {
         const k = (row.key || '').trim();
         const v = (row.value || '').toString().trim();
         if (k) APP_CONFIG[k] = v;
       });
-      console.log('APP_CONFIG:', JSON.stringify(APP_CONFIG));
     }
   } catch(e) {
     console.warn('_config okunamadı:', e.message);
