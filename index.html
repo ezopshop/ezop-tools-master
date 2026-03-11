@@ -863,7 +863,8 @@
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────
-const GS_URL  = 'https://script.google.com/macros/s/AKfycbzBUPRn-0sEL1YdywL5C0vuDnivkZA6Op1ET8kh_YkRAyx8rLvi1eMM8FSkbx_Dvn3jyQ/exec';
+// Fallback URL — _config'den gs_url gelirse dinamik olarak güncellenir
+let GS_URL  = 'https://script.google.com/macros/s/AKfycbzBUPRn-0sEL1YdywL5C0vuDnivkZA6Op1ET8kh_YkRAyx8rLvi1eMM8FSkbx_Dvn3jyQ/exec';
 const SS_ID   = '';
 const TOOL_ID = new URLSearchParams(location.search).get('tool');
 
@@ -993,6 +994,8 @@ window.onload = async () => {
         const v = (row.value || '').toString().trim();
         if (k) APP_CONFIG[k] = v;
       });
+      // _config'de gs_url varsa onu kullan (yeni deploy URL'si)
+      if (APP_CONFIG.gs_url) GS_URL = APP_CONFIG.gs_url;
     }
   } catch(e) {
     console.warn('_config okunamadı:', e.message);
