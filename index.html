@@ -671,6 +671,8 @@
   }
   .save-feedback.show { opacity: 1; }
 
+  .lbl-sub { font-size: 9px; color: var(--accent); display: block; }
+
   /* ── PAGINATION ── */
   .pagination {
     display: flex;
@@ -1049,6 +1051,7 @@ function renderSiparis(el, data, tool) {
 
   let activeFilter = 'all';
   let statusFilter = 'all';
+  let dateFilter   = 'all';
   let searchVal    = '';
 
   const gonderenler = [...new Set(data.map(r => gc(r,'gönderen','gonderen')).filter(Boolean))];
@@ -1063,13 +1066,22 @@ function renderSiparis(el, data, tool) {
   let currentPage = 1;
 
   function getFiltered() {
+    const now = new Date();
     return data
       .filter(r => {
         const gMatch = activeFilter === 'all' || gc(r,'gönderen','gonderen') === activeFilter;
         const sMatch = statusFilter === 'all' || normalizeStatus(gc(r,'status')) === statusFilter;
         const q      = searchVal.toLowerCase();
         const qMatch = !q || Object.values(r).some(v => String(v).toLowerCase().includes(q));
-        return gMatch && sMatch && qMatch;
+        let dMatch = true;
+        if (dateFilter !== 'all') {
+          const t = new Date(gc(r,'tarih') || 0);
+          const diffDays = (now - t) / (1000 * 60 * 60 * 24);
+          if (dateFilter === '7')  dMatch = diffDays <= 7;
+          if (dateFilter === '30') dMatch = diffDays <= 30;
+          if (dateFilter === '90') dMatch = diffDays <= 90;
+        }
+        return gMatch && sMatch && qMatch && dMatch;
       })
       .sort((a, b) => {
         // Tarih kolonunu parse et, yeni üstte
@@ -1117,7 +1129,7 @@ function renderSiparis(el, data, tool) {
     const allRows = getFiltered();
     const rows = getPaged(allRows);
     const totalPages = Math.ceil(allRows.length / PAGE_SIZE);
-    const { total, totalFiyat, totalMiktar } = calcSummary(rows);
+    const { total, totalFiyat, totalMiktar } = calcSummary(allRows);  // always full
     const sheetName = tool.sheet_name || tool.id;
 
     const filterBtns = gonderenler.map(g => {
@@ -1204,12 +1216,18 @@ function renderSiparis(el, data, tool) {
         <select class="filter-btn" style="background:var(--surface)" onchange="window._sip.status(this.value)">
           ${statusOpts}
         </select>
+        <select class="filter-btn" style="background:var(--surface)" onchange="window._sip.date(this.value)">
+          <option value="all"${dateFilter==='all'?' selected':''}>Tüm Zamanlar</option>
+          <option value="7"${dateFilter==='7'?' selected':''}>Son 7 Gün</option>
+          <option value="30"${dateFilter==='30'?' selected':''}>Son 30 Gün</option>
+          <option value="90"${dateFilter==='90'?' selected':''}>Son 90 Gün</option>
+        </select>
       </div>
       <div class="siparis-summary">
-        <div class="summary-card"><div class="summary-val">${total}</div><div class="summary-lbl">Sipariş</div></div>
+        <div class="summary-card"><div class="summary-val">${total}</div><div class="summary-lbl">Sipariş${dateFilter!=='all'?'<span class="lbl-sub"> (filtreli)</span>':''}</div></div>
         <div class="summary-card"><div class="summary-val">${totalMiktar||'—'}</div><div class="summary-lbl">Toplam Miktar</div></div>
         <div class="summary-card"><div class="summary-val">${totalFiyat>0?totalFiyat.toLocaleString('tr-TR',{minimumFractionDigits:2}):'—'}</div><div class="summary-lbl">Toplam Değer</div></div>
-        <div class="summary-card"><div class="summary-val">${gonderenler.length}</div><div class="summary-lbl">Gönderen</div></div>
+        <div class="summary-card"><div class="summary-val">${calcSummary(data).totalFiyat.toLocaleString('tr-TR',{minimumFractionDigits:2})}</div><div class="summary-lbl">Genel Toplam</div></div>
       </div>
       <div class="siparis-list">${cards}</div>
       ${totalPages > 1 ? `
@@ -1227,6 +1245,7 @@ function renderSiparis(el, data, tool) {
     page: p => { currentPage = Math.max(1, Math.min(p, Math.ceil(getFiltered().length/PAGE_SIZE))); draw(); window.scrollTo(0,0); },
     filter: f  => { activeFilter = f; currentPage = 1; draw(); },
     status: f  => { statusFilter = f; currentPage = 1; draw(); },
+    date:   f  => { dateFilter   = f; currentPage = 1; draw(); },
     toggle: id => { document.getElementById('sc_'+id)?.classList.toggle('expanded'); },
     save:   (rowId, sheetName) => {
       const sel = document.getElementById('sel_'+rowId);
