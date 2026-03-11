@@ -392,6 +392,207 @@
     border: 1px solid var(--border);
     border-radius: 4px;
   }
+
+  /* ── SİPARİŞ TAKİP RENDERER ── */
+  .siparis-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+
+  .siparis-search {
+    flex: 1;
+    min-width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  .siparis-search:focus { outline: none; border-color: var(--accent); }
+
+  .filter-btn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,255,136,.06);
+  }
+
+  .siparis-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .summary-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .summary-card:nth-child(1)::after { background: var(--accent); }
+  .summary-card:nth-child(2)::after { background: #7c3aed; }
+  .summary-card:nth-child(3)::after { background: #f59e0b; }
+  .summary-card:nth-child(4)::after { background: #06b6d4; }
+
+  .summary-val {
+    font-family: var(--display);
+    font-size: 26px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .summary-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .siparis-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .siparis-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 16px;
+    align-items: start;
+    transition: all .2s;
+    cursor: pointer;
+  }
+  .siparis-card:hover {
+    border-color: rgba(0,255,136,.3);
+    box-shadow: 0 4px 20px rgba(0,255,136,.05);
+  }
+  .siparis-card.expanded { border-color: var(--accent); }
+
+  .siparis-thumb {
+    width: 52px; height: 52px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--muted);
+  }
+  .siparis-thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 7px; }
+
+  .siparis-main { min-width: 0; }
+
+  .siparis-title {
+    font-family: var(--display);
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .siparis-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .siparis-meta span { display: flex; align-items: center; gap: 3px; }
+  .siparis-meta .highlight { color: var(--text); }
+
+  .siparis-konu {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .siparis-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .siparis-fiyat {
+    font-family: var(--display);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .siparis-miktar {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .siparis-no {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(124,58,237,.15);
+    color: #a78bfa;
+    font-weight: 600;
+  }
+
+  .siparis-detail {
+    display: none;
+    grid-column: 1 / -1;
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 8px;
+    font-size: 12px;
+  }
+
+  .siparis-card.expanded .siparis-detail { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+
+  .detail-item { display: flex; flex-direction: column; gap: 3px; }
+  .detail-key { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .detail-val { color: var(--text); word-break: break-all; }
+  .detail-val a { color: var(--accent); text-decoration: none; }
+  .detail-val a:hover { text-decoration: underline; }
+
+  .ean-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    background: rgba(0,255,136,.08);
+    border: 1px solid rgba(0,255,136,.2);
+    border-radius: 4px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+
 </style>
 </head>
 <body>
@@ -501,10 +702,11 @@ async function renderTool(toolId) {
     const renderer = tool.renderer || 'table';
     const target = document.getElementById('renderer');
 
-    if (renderer === 'table')     renderTable(target, data);
-    else if (renderer === 'grid') renderGrid(target, data);
+    if (renderer === 'table')          renderTable(target, data);
+    else if (renderer === 'grid')      renderGrid(target, data);
     else if (renderer === 'flashcard') renderFlashcard(target, data);
     else if (renderer === 'checklist') renderChecklist(target, data);
+    else if (tool.id === 'siparis-takibi' || renderer === 'siparis') renderSiparis(target, data, tool);
     else renderTable(target, data); // fallback
 
   } catch (err) {
@@ -700,6 +902,152 @@ function renderChecklist(el, data) {
   window.toggleCheck = (i) => {
     state[i]._done = !state[i]._done;
     draw();
+  };
+
+  draw();
+}
+
+
+// ─── SİPARİŞ TAKİP RENDERER ──────────────────────────────────
+function renderSiparis(el, data, tool) {
+  if (!data.length) { el.innerHTML = emptyHTML(); return; }
+
+  // Kolon anahtarlarını normalize et (büyük/küçük harf toleransı)
+  function col(row, ...names) {
+    for (const n of names) {
+      const key = Object.keys(row).find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === n.toLowerCase().replace(/[^a-z0-9]/g,''));
+      if (key && row[key] !== undefined && row[key] !== '') return row[key];
+    }
+    return '';
+  }
+
+  let activeFilter = 'all';
+  let searchVal = '';
+
+  // Benzersiz göndericiler
+  const gonderenler = [...new Set(data.map(r => col(r,'gönderen','gonderen')).filter(Boolean))];
+
+  // Özet hesapla
+  function calcSummary(rows) {
+    const total = rows.length;
+    const totalFiyat = rows.reduce((s, r) => {
+      const f = parseFloat(String(col(r,'fiyat')).replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
+      return s + f;
+    }, 0);
+    const totalMiktar = rows.reduce((s, r) => {
+      const m = parseFloat(col(r,'miktar')) || 0;
+      return s + m;
+    }, 0);
+    return { total, totalFiyat, totalMiktar };
+  }
+
+  function filtered() {
+    return data.filter(r => {
+      const matchFilter = activeFilter === 'all' || col(r,'gönderen','gonderen') === activeFilter;
+      const q = searchVal.toLowerCase();
+      const matchSearch = !q || Object.values(r).some(v => String(v).toLowerCase().includes(q));
+      return matchFilter && matchSearch;
+    });
+  }
+
+  function draw() {
+    const rows = filtered();
+    const { total, totalFiyat, totalMiktar } = calcSummary(rows);
+
+    el.innerHTML = `
+      <div class="siparis-toolbar">
+        <input class="siparis-search" placeholder="Ara... (sipariş no, gönderen, konu...)" id="sipSearch" value="${searchVal}">
+        <button class="filter-btn ${activeFilter==='all'?'active':''}" onclick="setSipFilter('all')">Tümü (${data.length})</button>
+        ${gonderenler.map(g => `
+          <button class="filter-btn ${activeFilter===g?'active':''}" onclick="setSipFilter('${g.replace(/'/g,"\'")}')">
+            ${g} (${data.filter(r => col(r,'gönderen','gonderen') === g).length})
+          </button>`).join('')}
+      </div>
+
+      <div class="siparis-summary">
+        <div class="summary-card">
+          <div class="summary-val">${total}</div>
+          <div class="summary-lbl">Sipariş</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-val">${totalMiktar > 0 ? totalMiktar : '—'}</div>
+          <div class="summary-lbl">Toplam Miktar</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-val">${totalFiyat > 0 ? totalFiyat.toLocaleString('tr-TR', {minimumFractionDigits:2, maximumFractionDigits:2}) : '—'}</div>
+          <div class="summary-lbl">Toplam Değer</div>
+        </div>
+        <div class="summary-card">
+          <div class="summary-val">${gonderenler.length}</div>
+          <div class="summary-lbl">Gönderen</div>
+        </div>
+      </div>
+
+      <div class="siparis-list" id="sipList">
+        ${rows.map((row, i) => {
+          const imgUrl = col(row,'image','resimurl','Resim_URL');
+          const thumb = imgUrl
+            ? `<div class="siparis-thumb"><img src="${imgUrl}" onerror="this.parentElement.innerHTML='📦'"></div>`
+            : `<div class="siparis-thumb">📦</div>`;
+
+          const title = col(row,'fulltitle','Ful_Title','shorttitle','shortTitle','konu','Konu') || col(row,'ID','id');
+          const short = col(row,'shortTitle','shorttitle') || '';
+          const gonderen = col(row,'gönderen','gonderen');
+          const alici = col(row,'alıcı','alici');
+          const tarih = col(row,'tarih');
+          const siparisNo = col(row,'siparişno','siparis_no','Siparis_No','SiparisNo');
+          const miktar = col(row,'miktar');
+          const fiyat = col(row,'fiyat');
+          const ean = col(row,'ean','EAN');
+          const mailUrl = col(row,'mailurl','Mail_URL');
+          const refKod = col(row,'referanskodu','Referans_kodu','referans_kodu');
+          const mesaj = col(row,'mesaj');
+
+          const fiyatNum = parseFloat(String(fiyat).replace(/[^0-9.,]/g,'').replace(',','.')) || 0;
+
+          // Detay alanları — tüm kolon değerleri
+          const detailKeys = Object.keys(row).filter(k => k !== '_row');
+
+          return `
+            <div class="siparis-card" id="sc_${i}" onclick="toggleSipCard(${i})">
+              ${thumb}
+              <div class="siparis-main">
+                <div class="siparis-title" title="${title}">${short || title}</div>
+                <div class="siparis-meta">
+                  ${gonderen ? `<span>✉️ <span class="highlight">${gonderen}</span></span>` : ''}
+                  ${alici    ? `<span>→ <span class="highlight">${alici}</span></span>` : ''}
+                  ${tarih    ? `<span>📅 ${tarih}</span>` : ''}
+                  ${ean      ? `<span class="ean-badge">${ean}</span>` : ''}
+                </div>
+                <div class="siparis-konu">${col(row,'konu','Konu') || ''}</div>
+              </div>
+              <div class="siparis-right">
+                ${fiyatNum > 0 ? `<div class="siparis-fiyat">${fiyatNum.toLocaleString('tr-TR', {minimumFractionDigits:2})} ₺</div>` : '<div class="siparis-fiyat">—</div>'}
+                ${miktar ? `<div class="siparis-miktar">x${miktar}</div>` : ''}
+                ${siparisNo ? `<div class="siparis-no">#${siparisNo}</div>` : ''}
+              </div>
+              <div class="siparis-detail">
+                ${detailKeys.map(k => {
+                  let val = row[k];
+                  if (!val && val !== 0) return '';
+                  let display = String(val);
+                  if (display.startsWith('http')) display = `<a href="${display}" target="_blank">🔗 Aç</a>`;
+                  return `<div class="detail-item"><div class="detail-key">${k}</div><div class="detail-val">${display}</div></div>`;
+                }).filter(Boolean).join('')}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>`;
+
+    document.getElementById('sipSearch').addEventListener('input', e => {
+      searchVal = e.target.value;
+      draw();
+    });
+  }
+
+  window.setSipFilter = (f) => { activeFilter = f; draw(); };
+  window.toggleSipCard = (i) => {
+    document.getElementById('sc_' + i)?.classList.toggle('expanded');
   };
 
   draw();
