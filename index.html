@@ -743,24 +743,106 @@
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────
-const CONFIG = (() => {
-  const saved = localStorage.getItem('ezop_config');
-  return saved ? JSON.parse(saved) : {};
-})();
-
-// Hardcoded defaults — localStorage varsa onu kullan, yoksa default
-const GS_URL = CONFIG.gsUrl || 'https://script.google.com/macros/s/AKfycbzBUPRn-0sEL1YdywL5C0vuDnivkZA6Op1ET8kh_YkRAyx8rLvi1eMM8FSkbx_Dvn3jyQ/exec';
-const SS_ID  = CONFIG.ssId  || '';  // boş — script kendi SS'ine bağlı
-
+const GS_URL  = 'https://script.google.com/macros/s/AKfycbzBUPRn-0sEL1YdywL5C0vuDnivkZA6Op1ET8kh_YkRAyx8rLvi1eMM8FSkbx_Dvn3jyQ/exec';
+const SS_ID   = '';
 const TOOL_ID = new URLSearchParams(location.search).get('tool');
 
+let APP_CONFIG = {};  // _config sheet'ten doldurulacak
+
+// ─── JSONP (config boot için senkron benzeri) ─────────────────
+function jsonpGet(params) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => { delete window[cb]; reject(new Error('Timeout')); }, 10000);
+    window[cb] = data => {
+      clearTimeout(timeout);
+      delete window[cb];
+      document.getElementById('_jp_'+cb)?.remove();
+      resolve(data);
+    };
+    params.callback = cb;
+    const qs = new URLSearchParams(params);
+    const s = document.createElement('script');
+    s.id = '_jp_' + cb;
+    s.src = GS_URL + '?' + qs;
+    s.onerror = () => { clearTimeout(timeout); reject(new Error('Script yüklenemedi')); };
+    document.head.appendChild(s);
+  });
+}
+
+// ─── ACCESS / AUTH ────────────────────────────────────────────
+function checkAccess(cfg) {
+  if (cfg.access_mode !== 'key') return true;
+  const saved = sessionStorage.getItem('ezop_access');
+  return saved === cfg.access_key;
+}
+
+function showLoginScreen(cfg) {
+  const app = document.getElementById('app');
+  const name = cfg.app_name || 'Ezop Tools';
+  app.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:20px">
+      <div style="font-family:var(--display);font-size:32px;font-weight:800">${name}</div>
+      <div style="color:var(--muted);font-size:13px">Erişim için anahtar gerekli</div>
+      <div style="display:flex;gap:10px;width:100%;max-width:360px">
+        <input id="keyInput" type="password" placeholder="Erişim anahtarı..."
+          style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;
+                 padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:14px"
+          onkeydown="if(event.key==='Enter')window._tryLogin()">
+        <button onclick="window._tryLogin()"
+          style="padding:12px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;
+                 font-family:var(--mono);font-weight:700;cursor:pointer">Giriş</button>
+      </div>
+      <div id="loginErr" style="color:#f87171;font-size:12px;min-height:16px"></div>
+    </div>`;
+
+  window._tryLogin = () => {
+    const val = document.getElementById('keyInput').value.trim();
+    if (val === cfg.access_key) {
+      sessionStorage.setItem('ezop_access', val);
+      boot();
+    } else {
+      document.getElementById('loginErr').textContent = '✗ Yanlış anahtar';
+      document.getElementById('keyInput').value = '';
+    }
+  };
+}
+
 // ─── BOOT ────────────────────────────────────────────────────
-window.onload = async () => {
+async function boot() {
+  const app = document.getElementById('app');
+  app.innerHTML = '<div class="state-box"><div class="spinner"></div><div class="state-title">Yükleniyor...</div></div>';
+
   if (!TOOL_ID) {
     await renderHome();
   } else {
     await renderTool(TOOL_ID);
   }
+}
+
+window.onload = async () => {
+  // 1) _config oku
+  try {
+    const res = await jsonpGet({ action: 'read', sheet: '_config' });
+    if (res.ok && res.data) {
+      res.data.forEach(row => {
+        const k = (row.key || '').trim();
+        const v = (row.value || '').toString().trim();
+        if (k) APP_CONFIG[k] = v;
+      });
+    }
+  } catch(e) {
+    console.warn('_config okunamadı, devam ediliyor:', e.message);
+  }
+
+  // 2) Erişim kontrolü
+  if (!checkAccess(APP_CONFIG)) {
+    showLoginScreen(APP_CONFIG);
+    return;
+  }
+
+  // 3) Boot
+  await boot();
 };
 
 // ─── HOME — araç listesi ─────────────────────────────────────
@@ -846,26 +928,10 @@ async function renderTool(toolId) {
 }
 
 // ─── FETCH ───────────────────────────────────────────────────
-function fetchSheet(sheetName) {
-  return new Promise((resolve, reject) => {
-    if (!GS_URL) { reject(new Error('GS URL tanimli degil. Admin panelden ayarla.')); return; }
-    const cbName = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const timeout = setTimeout(() => { delete window[cbName]; reject(new Error('Timeout')); }, 10000);
-    window[cbName] = (json) => {
-      clearTimeout(timeout);
-      delete window[cbName];
-      document.getElementById('_jp_' + cbName) && document.getElementById('_jp_' + cbName).remove();
-      if (!json.ok) reject(new Error(json.error || 'Veri alinamadi'));
-      else resolve(json.data);
-    };
-    const params = new URLSearchParams({ action: 'read', sheet: sheetName, callback: cbName });
-    if (SS_ID) params.append('ssId', SS_ID);
-    const s = document.createElement('script');
-    s.id = '_jp_' + cbName;
-    s.src = GS_URL + '?' + params;
-    s.onerror = () => { clearTimeout(timeout); delete window[cbName]; reject(new Error('Script yuklenemedi')); };
-    document.head.appendChild(s);
-  });
+async function fetchSheet(sheetName) {
+  const res = await jsonpGet({ action: 'read', sheet: sheetName });
+  if (!res.ok) throw new Error(res.error || 'Veri alınamadı');
+  return res.data;
 }
 
 // ─── TABLE RENDERER ──────────────────────────────────────────
