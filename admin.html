@@ -766,6 +766,37 @@ function saveConfig() {
   toast('Ayarlar kaydedildi');
 }
 
+// ─── JSONP — CORS'u bypass eder ─────────────────────────────
+function jsonp(params) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'cb_' + Date.now();
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      reject(new Error('Timeout — GS URL yanlış veya erişilemiyor'));
+    }, 10000);
+
+    window[cbName] = (data) => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      document.getElementById('jsonpScript')?.remove();
+      resolve(data);
+    };
+
+    params.callback = cbName;
+    if (STATE.ssId) params.ssId = STATE.ssId;
+    const qs = new URLSearchParams(params).toString();
+    const script = document.createElement('script');
+    script.id = 'jsonpScript';
+    script.src = `${STATE.gsUrl}?${qs}`;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      reject(new Error('Script yüklenemedi'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
 // ─── CONNECTION ──────────────────────────────────────────────
 async function connect() {
   STATE.gsUrl = document.getElementById('gsUrl').value.trim();
@@ -779,10 +810,7 @@ async function connect() {
   log('info', 'Bağlantı deneniyor...');
 
   try {
-    const params = new URLSearchParams({ action: 'ping' });
-    if (STATE.ssId) params.append('ssId', STATE.ssId);
-    const res = await fetch(`${STATE.gsUrl}?${params}`);
-    const data = await res.json();
+    const data = await jsonp({ action: 'ping' });
 
     if (data.ok) {
       STATE.connected = true;
@@ -809,10 +837,7 @@ async function loadTools() {
   log('info', '_registry okunuyor...');
 
   try {
-    const params = new URLSearchParams({ action: 'read', sheet: '_registry' });
-    if (STATE.ssId) params.append('ssId', STATE.ssId);
-    const res = await fetch(`${STATE.gsUrl}?${params}`);
-    const data = await res.json();
+    const data = await jsonp({ action: 'read', sheet: '_registry' });
 
     if (!data.ok) throw new Error(data.error);
     STATE.tools = data.data || [];
