@@ -748,8 +748,9 @@ const CONFIG = (() => {
   return saved ? JSON.parse(saved) : {};
 })();
 
-const GS_URL = CONFIG.gsUrl || '';
-const SS_ID  = CONFIG.ssId  || '';
+// Hardcoded defaults — localStorage varsa onu kullan, yoksa default
+const GS_URL = CONFIG.gsUrl || 'https://script.google.com/macros/s/AKfycbzBUPRn-0sEL1YdywL5C0vuDnivkZA6Op1ET8kh_YkRAyx8rLvi1eMM8FSkbx_Dvn3jyQ/exec';
+const SS_ID  = CONFIG.ssId  || '1L1FAJoiA8_HkuDj84OUDs9p0XEo_MFZKlrNZyYiLR2g';
 
 const TOOL_ID = new URLSearchParams(location.search).get('tool');
 
